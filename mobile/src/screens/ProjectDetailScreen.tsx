@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 
-const API_URL = 'http://192.168.1.9:8000/api';
+const API_URL = 'http://192.168.1.6:8000/api';
 const CURRENT_USER_ID = 'user-1'; // Mock user Profile ID
 const CURRENT_USER_NAME = 'Elena Rostova';
 

@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, TouchableOpacity, Image, ActivityIndicator, Ale
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 
-const API_URL = 'http://192.168.1.9:8000/api';
+const API_URL = 'http://192.168.1.6:8000/api';
 
 export default function CameraScreen({ navigation }: any) {
   const [permission, requestPermission] = useCameraPermissions();

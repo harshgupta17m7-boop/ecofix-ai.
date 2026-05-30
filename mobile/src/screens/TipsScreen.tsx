@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Leaf, Send } from 'lucide-react-native';
 
-const API_URL = 'http://192.168.1.9:8000/api';
+const API_URL = 'http://192.168.1.6:8000/api';
 
 const TIPS = [
   "Did you know? Recycling one aluminum can saves enough energy to listen to a full album on your iPod. Or, you know, watch a few TikToks.",

@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, ActivityIndicator } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { useFocusEffect } from '@react-navigation/native';
 
-const API_URL = 'http://192.168.1.9:8000/api';
+const API_URL = 'http://192.168.1.6:8000/api';
 
 export default function MapScreen({ navigation }: any) {
   const [projects, setProjects] = useState<any[]>([]);

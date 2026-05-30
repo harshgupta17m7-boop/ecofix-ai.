@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 
-const API_URL = 'http://192.168.1.9:8000/api'; // Replace with local host IP for device builds
+const API_URL = 'http://192.168.1.6:8000/api'; // Replace with local host IP for device builds
 
 export default function DashboardScreen({ navigation }: any) {
   const [projects, setProjects] = useState([]);
