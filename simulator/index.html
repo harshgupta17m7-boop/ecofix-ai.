@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoFix AI - Civic Action Simulator</title>
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- Leaflet CSS for Maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <i data-lucide="shield-alert"></i>
+        </div>
+        <div class="logo-text">
+          <h1>EcoFix<span>AI</span></h1>
+          <p>Crowdsourced Civic Action Platform</p>
+        </div>
+      </div>
+      
+      <!-- User Profile Widget -->
+      <div class="profile-widget">
+        <img id="user-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Avatar">
+        <div class="profile-info">
+          <h4 id="user-name">Elena Rostova</h4>
+          <div class="points-badge">
+            <i data-lucide="award"></i>
+            <span id="user-points">350</span> pts
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="app-main">
+      <!-- Sidebar Navigation -->
+      <aside class="app-sidebar">
+        <nav class="nav-menu">
+          <button class="nav-item active" data-tab="feed">
+            <i data-lucide="layout-grid"></i>
+            <span>EcoFix Feed</span>
+          </button>
+          <button class="nav-item" data-tab="intake">
+            <i data-lucide="camera"></i>
+            <span>Report Degradation</span>
+          </button>
+          <button class="nav-item" data-tab="map-view">
+            <i data-lucide="map"></i>
+            <span>Civic Map</span>
+          </button>
+          <button class="nav-item" data-tab="municipal">
+            <i data-lucide="building-2"></i>
+            <span>Municipal Bypass</span>
+            <span class="badge" id="muni-badge-count">1</span>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Content Area -->
+      <section class="content-viewport">
+        
+        <!-- TAB 1: ECOFIX FEED -->
+        <div class="tab-pane active" id="tab-feed">
+          <div class="section-header">
+            <h2>Active Civic Projects</h2>
+            <p>Select a local project, pledge a volunteer micro-task, or help fund tools.</p>
+          </div>
+          <div class="projects-grid" id="projects-list">
+            <!-- Dynamic Project Cards go here -->
+          </div>
+        </div>
+
+        <!-- TAB 2: INTAKE / PHOTO UPLOAD -->
+        <div class="tab-pane" id="tab-intake">
+          <div class="section-header">
+            <h2>Ingestion Terminal</h2>
+            <p>Upload visual evidence of environmental degradation, select GPS coordinates, and run the Multimodal AI Intake.</p>
+          </div>
+          
+          <div class="intake-layout">
+            <!-- Left panel: upload controls -->
+            <div class="intake-controls glass-panel">
+              <div class="control-group">
+                <label>1. Select Mock Image</label>
+                <div class="mock-images-selector">
+                  <div class="mock-thumb active" data-img="river" data-url="https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?w=800&auto=format&fit=crop&q=80">
+                    <img src="https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?w=100&auto=format&fit=crop&q=80" alt="River">
+                    <span>River Litter</span>
+                  </div>
+                  <div class="mock-thumb" data-img="dump" data-url="https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=800&auto=format&fit=crop&q=80">
+                    <img src="https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=100&auto=format&fit=crop&q=80" alt="Sidewalk">
+                    <span>Debris Dump</span>
+                  </div>
+                  <div class="mock-thumb" data-img="wire" data-url="https://images.unsplash.com/photo-1599740831243-d97f3eabc7d3?w=800&auto=format&fit=crop&q=80">
+                    <img src="https://images.unsplash.com/photo-1599740831243-d97f3eabc7d3?w=100&auto=format&fit=crop&q=80" alt="Wires">
+                    <span>Power Hazard</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label>2. Geolocation Coordinates (GPS)</label>
+                <div class="input-row">
+                  <div class="field-item">
+                    <span>Lat</span>
+                    <input type="number" id="gps-lat" value="40.7145" step="0.0001">
+                  </div>
+                  <div class="field-item">
+                    <span>Lng</span>
+                    <input type="number" id="gps-lng" value="-74.0080" step="0.0001">
+                  </div>
+                </div>
+                <p class="field-note">Tip: Coordinates near active projects (e.g. Lat 40.7128, Lng -74.0060) within 25m trigger <strong>Geospatial Clustering (De-duplication)</strong>.</p>
+              </div>
+
+              <button class="btn btn-primary btn-full" id="btn-run-intake">
+                <i data-lucide="play"></i>
+                <span>Run AI Intake & Ingestion</span>
+              </button>
+            </div>
+
+            <!-- Right panel: visual output / status -->
+            <div class="intake-output glass-panel" id="intake-output-screen">
+              <div class="output-placeholder">
+                <i data-lucide="cpu" class="icon-pulsing"></i>
+                <h3>AI Assessment Viewfinder</h3>
+                <p>Select parameters and trigger the ingestion pipeline to view spatial calculations, volume logs, and safety classifications.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: CIVIC MAP -->
+        <div class="tab-pane" id="tab-map-view">
+          <div class="section-header">
+            <h2>Hyper-Local Broadcast Map</h2>
+            <p>Interactive mapping of active civic projects, showing 2km broadcast rings and 25m duplicate zones.</p>
+          </div>
+          <div class="map-wrapper glass-panel">
+            <div id="leaflet-map-container"></div>
+            <div class="map-legend-overlay">
+              <h4>Map Legend</h4>
+              <div class="legend-item"><span class="dot pin-green"></span>Active Project Marker</div>
+              <div class="legend-item"><span class="ring broadcast-ring"></span>Local Notification Broadcast Ring (2km)</div>
+              <div class="legend-item"><span class="ring duplicate-ring"></span>De-duplication Zone (25m)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: MUNICIPAL ESCALATION PORTAL -->
+        <div class="tab-pane" id="tab-municipal">
+          <div class="section-header">
+            <h2>Municipal Bypass Portal</h2>
+            <p>Visual reports flagged by AI as highly dangerous are automatically routed here for professional public works crews, bypassing citizen volunteers.</p>
+          </div>
+          <div class="escalations-grid" id="escalations-list">
+            <!-- Dynamic Escalated Reports -->
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- Detailed Project View Overlay (Modal) -->
+  <div class="modal-overlay" id="project-detail-modal">
+    <div class="modal-card glass-panel">
+      <button class="modal-close" id="btn-close-modal">
+        <i data-lucide="x"></i>
+      </button>
+      
+      <div class="modal-hero">
+        <img id="modal-project-img" src="" alt="Project">
+        <div class="modal-hero-title">
+          <span class="badge" id="modal-project-status">Active</span>
+          <h2 id="modal-project-title">Project Title</h2>
+        </div>
+      </div>
+      
+      <div class="modal-body-layout">
+        <!-- Left Column: Details, Roadmap & Tasks -->
+        <div class="modal-main-col">
+          <div class="modal-block">
+            <h3>Project Description</h3>
+            <p id="modal-project-desc">Description text goes here.</p>
+          </div>
+
+          <!-- Microtask Billboard -->
+          <div class="modal-block">
+            <h3>Micro-Task Billboard</h3>
+            <div class="task-billboard-list" id="modal-task-list">
+              <!-- Task cards -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: AI scoping & Crowdfunding -->
+        <div class="modal-side-col">
+          <!-- AI Scoping Panel -->
+          <div class="side-panel-card border-glow">
+            <h3>AI Scoping Metrics</h3>
+            <div class="metrics-list">
+              <div class="metric-item">
+                <span class="lbl">Est. Debris Volume</span>
+                <span class="val text-green" id="modal-ai-volume">1.8 cu yds</span>
+              </div>
+              <div class="metric-item">
+                <span class="lbl">Feasibility Score</span>
+                <span class="val text-orange" id="modal-ai-feasibility">85/100</span>
+              </div>
+              <div class="metric-item flex-col">
+                <span class="lbl">Identified Hazards</span>
+                <div class="hazard-pills" id="modal-ai-hazards">
+                  <!-- Hazard tags -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Crowdfunding Card -->
+          <div class="side-panel-card" id="modal-funding-card">
+            <h3>Crowdfunding Ledger</h3>
+            <div class="funding-status">
+              <div class="funding-values">
+                <span id="modal-funding-raised">$35.00</span> raised of <span id="modal-funding-target">$65.00</span>
+              </div>
+              <span class="funding-pct" id="modal-funding-pct">54%</span>
+            </div>
+            <div class="funding-bar-bg">
+              <div class="funding-bar-fill" id="modal-funding-fill" style="width: 54%"></div>
+            </div>
+            
+            <div class="backing-action-row" id="funding-controls">
+              <input type="number" id="input-backing-amt" placeholder="$ Amount" min="1">
+              <button class="btn btn-accent" id="btn-back-project">Contribute</button>
+            </div>
+          </div>
+
+          <!-- Proof-To-Fix Verification Button -->
+          <button class="btn btn-primary btn-full" id="btn-prove-fix">
+            <i data-lucide="check-circle-2"></i>
+            <span>📸 Prove Fix (After Photo)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS for Maps -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Main Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
