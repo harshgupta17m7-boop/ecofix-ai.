@@ -10,6 +10,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("EcoFixAI-AIHelper")
 
 # Retrieve Gemini API Key from environment variables (or use injected key)
+from dotenv import load_dotenv
+load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 class AIHelper:
