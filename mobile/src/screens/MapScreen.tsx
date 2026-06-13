@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, ActivityIndicator } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { useFocusEffect } from '@react-navigation/native';
@@ -8,6 +8,20 @@ const API_URL = 'http://192.168.1.6:8000/api';
 export default function MapScreen({ navigation }: any) {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const mapRef = useRef<MapView>(null);
+
+  useEffect(() => {
+    if (projects.length > 0 && mapRef.current) {
+      const coords = projects.map(p => ({ latitude: p.latitude, longitude: p.longitude }));
+      // Use setTimeout to ensure MapView layout has fully completed before fitting coordinates
+      setTimeout(() => {
+        mapRef.current?.fitToCoordinates(coords, {
+          edgePadding: { top: 50, right: 50, bottom: 200, left: 50 },
+          animated: true,
+        });
+      }, 500);
+    }
+  }, [projects]);
 
   useFocusEffect(
     useCallback(() => {
@@ -48,6 +62,7 @@ export default function MapScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <MapView
+        ref={mapRef}
         style={styles.map}
         initialRegion={initialRegion}
         customMapStyle={darkMapStyle} // Apply dark mode map style
