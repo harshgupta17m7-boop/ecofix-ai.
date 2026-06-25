@@ -1,10 +1,26 @@
+/**
+ * EcoFix AI - Dashboard Screen
+ * ============================
+ * The Dashboard acts as the primary community feed.
+ * It displays active and recently completed civic action projects.
+ * 
+ * Flow:
+ * 1. Fetches projects from the backend `/api/projects`.
+ * 2. Renders a list of projects, displaying images, funding progress, and completion status.
+ * 3. Tapping a project navigates the user to the ProjectDetailScreen.
+ * 
+ * Connections:
+ * - Calls GET `/api/projects` on the backend.
+ * - Navigates to `ProjectDetail` route in TabNavigator.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 
-const API_URL = 'http://192.168.1.6:8000/api'; // Replace with local host IP for device builds
+const API_URL = 'http://192.168.1.9:8000/api'; // Replace with local host IP for device builds
 
 export default function DashboardScreen({ navigation }: any) {
-  const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -14,15 +30,16 @@ export default function DashboardScreen({ navigation }: any) {
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/projects?status=active`);
-      const data = await response.json();
-      setProjects(data);
+      const projRes = await fetch(`${API_URL}/projects?status=active`);
+      const projData = await projRes.json();
+      setProjects(projData);
     } catch (error) {
-      console.error("Error fetching projects: ", error);
+      console.error("Error fetching dashboard data: ", error);
     } finally {
       setLoading(false);
     }
   };
+
 
   const renderProjectCard = ({ item }: any) => {
     // Determine color based on feasibility score
@@ -233,6 +250,6 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     fontSize: 14,
     textAlign: 'center',
-    lineHeight: 20,
   },
+
 });

@@ -1,3 +1,16 @@
+"""
+EcoFix AI - Gemini AI Helper
+============================
+This module serves as the primary wrapper around the Google Gemini API. It encapsulates
+the logic for formatting prompts, sending images and text to the Gemini endpoints,
+and parsing the JSON responses back into structured data for the backend.
+
+Key Functions:
+- `analyze_intake_image`: Detects civic hazards, estimates volume, and flags safety concerns.
+- `generate_bespoke_roadmap`: Creates a step-by-step project roadmap and micro-tasks based on the hazard.
+- `analyze_sustainability`: Evaluates consumer products and utility bills for ecological footprint.
+"""
+
 import os
 import json
 import logging
@@ -16,6 +29,14 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 class AIHelper:
     @staticmethod
+    def extract_json(text: str) -> str:
+        start = text.find('{')
+        end = text.rfind('}')
+        if start != -1 and end != -1:
+            return text[start:end+1]
+        return text.strip().replace("```json", "").replace("```", "")
+
+    @staticmethod
     def analyze_image_intake(image_url: str, latitude: float, longitude: float, image_base64: str = None) -> Dict[str, Any]:
         """
         Analyzes the uploaded environmental degradation photo using Gemini Multimodal API.
@@ -27,7 +48,7 @@ class AIHelper:
             return AIHelper._simulate_image_intake(image_url)
 
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
             headers = {"Content-Type": "application/json"}
             
             prompt = f"""
@@ -40,9 +61,11 @@ class AIHelper:
             - Toxic materials (e.g. batteries, electronics, chemicals)
             - Heavy debris (e.g. concrete blocks, tires)
             Determine if the issue involves highly dangerous components requiring direct municipal escalation (e.g., hazardous waste, structural collapse, downed power lines). If so, set municipal_escalation to true.
+            Critically, determine if the image actually shows a valid environmental issue (waste, illegal dumping, natural hazard, damage). If the image is unrelated (e.g., a laptop, an indoor room, a clean park, a dog), set "is_valid_issue" to false.
             
             Return ONLY a valid JSON object matching this schema:
             {{
+                "is_valid_issue": boolean,
                 "volumetric_estimate": "string (e.g., '4.5 cubic yards')",
                 "safety_flags": ["string"],
                 "municipal_escalation": boolean,
@@ -69,11 +92,11 @@ class AIHelper:
                 }
             }
             
-            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            response = requests.post(url, json=payload, headers=headers, timeout=30)
             if response.status_code == 200:
                 result_json = response.json()
                 text_response = result_json['candidates'][0]['content']['parts'][0]['text']
-                return json.loads(text_response.strip())
+                return json.loads(AIHelper.extract_json(text_response))
             else:
                 logger.error(f"Gemini API returned error: {response.text}")
                 return AIHelper._simulate_image_intake(image_url)
@@ -93,7 +116,7 @@ class AIHelper:
             return AIHelper._simulate_roadmap(title, volumetric_debris, safety_flags)
 
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
             headers = {"Content-Type": "application/json"}
             
             prompt = f"""
@@ -142,11 +165,11 @@ class AIHelper:
                 }
             }
             
-            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            response = requests.post(url, json=payload, headers=headers, timeout=30)
             if response.status_code == 200:
                 result_json = response.json()
                 text_response = result_json['candidates'][0]['content']['parts'][0]['text']
-                data = json.loads(text_response.strip())
+                data = json.loads(AIHelper.extract_json(text_response))
                 
                 # Parse tasks to MicroTaskSchema
                 tasks = [MicroTaskSchema(**t) for t in data.get("tasks", [])]
@@ -185,7 +208,7 @@ class AIHelper:
                 return "That's a great question! As your EcoFix Assistant, I recommend checking local municipal guidelines for the most accurate environmental advice. Is there a specific material you're trying to dispose of?"
 
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
             headers = {"Content-Type": "application/json"}
             
             prompt = f"""
@@ -225,6 +248,7 @@ class AIHelper:
         # Scenario: Downed Power Lines / Heavy Hazardous Waste (Municipal Escalation Bypass)
         if "hazardous" in url_lower or "powerline" in url_lower or "toxic" in url_lower or "wires" in url_lower or "collapse" in url_lower:
             return {
+                "is_valid_issue": True,
                 "volumetric_estimate": "N/A - Escalated",
                 "safety_flags": ["downed_power_lines", "electrocution_hazard", "structural_collapse"],
                 "municipal_escalation": True,
@@ -235,6 +259,7 @@ class AIHelper:
         # Scenario: River / Waterway Pollution
         elif "river" in url_lower or "water" in url_lower or "stream" in url_lower or "creek" in url_lower:
             return {
+                "is_valid_issue": True,
                 "volumetric_estimate": "1.8 cubic yards",
                 "safety_flags": ["water_proximity", "slippery_slopes", "unknown_liquids"],
                 "municipal_escalation": False,
@@ -245,6 +270,7 @@ class AIHelper:
         # Scenario: illegal Dumping (Trash, Tires, Furniture)
         elif "dump" in url_lower or "trash" in url_lower or "tires" in url_lower or "debris" in url_lower:
             return {
+                "is_valid_issue": True,
                 "volumetric_estimate": "5.4 cubic yards",
                 "safety_flags": ["sharp_objects", "heavy_lifting", "rusted_metal"],
                 "municipal_escalation": False,
@@ -254,6 +280,7 @@ class AIHelper:
             
         # Default fallback
         return {
+            "is_valid_issue": True,
             "volumetric_estimate": "2.5 cubic yards",
             "safety_flags": ["sharp_objects", "heavy_lifting"],
             "municipal_escalation": False,
@@ -325,3 +352,153 @@ class AIHelper:
             feasibility_score=feasibility,
             tasks=tasks
         )
+
+    @staticmethod
+    def analyze_eco_scan(scan_mode: str, image_base64: str) -> Dict[str, Any]:
+        """
+        Analyzes a utility bill or product using Gemini Multimodal API.
+        Returns a sustainability score, environmental impact summary, and greener alternatives.
+        """
+        if not GEMINI_API_KEY or not image_base64:
+            return AIHelper._simulate_eco_scan(scan_mode)
+
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+            headers = {"Content-Type": "application/json"}
+            
+            if scan_mode == "bill":
+                prompt = """
+                You are an expert energy auditor and sustainability analyst. Look at the attached utility bill (electricity, water, or gas).
+                Extract the total usage (e.g. kWh or gallons) if visible.
+                Based on standard consumption, calculate a 'sustainability_score' from 1-100 (where 100 is extremely green and efficient).
+                Provide a short 'environmental_impact' summary explaining their usage footprint.
+                Provide exactly 3 'greener_alternatives' (actionable tips) to reduce this specific bill's footprint.
+
+                Return ONLY a valid JSON object:
+                {
+                    "sustainability_score": 0,
+                    "environmental_impact": "string",
+                    "greener_alternatives": ["string", "string", "string"]
+                }
+                """
+            else: # product
+                prompt = """
+                You are a product lifecycle and sustainability analyst. Look at the attached household product.
+                Identify what it is and its primary material (e.g., plastic water bottle, chemical cleaner, paper towel).
+                Calculate a 'sustainability_score' from 1-100 based on its lifecycle impact and biodegradability (e.g., single-use plastic is very low).
+                Provide a short 'environmental_impact' summary explaining why it is harmful or helpful.
+                Provide exactly 3 'greener_alternatives' (sustainable product swaps or habits).
+
+                Return ONLY a valid JSON object:
+                {
+                    "sustainability_score": 0,
+                    "environmental_impact": "string",
+                    "greener_alternatives": ["string", "string", "string"]
+                }
+                """
+                
+            payload = {
+                "contents": [{
+                    "parts": [
+                        {"text": prompt},
+                        {
+                            "inlineData": {
+                                "mimeType": "image/jpeg",
+                                "data": image_base64
+                            }
+                        }
+                    ]
+                }],
+                "generationConfig": {
+                    "responseMimeType": "application/json"
+                }
+            }
+            
+            response = requests.post(url, json=payload, headers=headers, timeout=30)
+            if response.status_code == 200:
+                result_json = response.json()
+                text_response = result_json['candidates'][0]['content']['parts'][0]['text']
+                return json.loads(AIHelper.extract_json(text_response))
+            else:
+                logger.error(f"Gemini API returned error: {response.text}")
+                return AIHelper._simulate_eco_scan(scan_mode)
+                
+        except Exception as e:
+            logger.error(f"Error calling Gemini API for Eco Scan: {str(e)}")
+            return AIHelper._simulate_eco_scan(scan_mode)
+
+    @staticmethod
+    def _simulate_eco_scan(scan_mode: str) -> Dict[str, Any]:
+        if scan_mode == "bill":
+            return {
+                "sustainability_score": 65,
+                "environmental_impact": "Based on a scanned estimate of 950 kWh this month, your usage is 15% above the neighborhood average. The majority of this draw likely comes from AC cooling and outdated appliances.",
+                "greener_alternatives": [
+                    "Upgrade your thermostat to a smart model to automate cooling cycles.",
+                    "Switch all remaining incandescent bulbs to LEDs.",
+                    "Run major appliances (dishwasher, washer) only during off-peak night hours."
+                ]
+            }
+        else: # product
+            return {
+                "sustainability_score": 30,
+                "environmental_impact": "Single-use plastic water bottles take over 400 years to decompose and contribute massively to ocean microplastics. The production process also has a high carbon footprint.",
+                "greener_alternatives": [
+                    "Switch to a reusable stainless steel or glass water bottle.",
+                    "Install a tap water filter at home.",
+                    "If you must buy disposable, look for brands using 100% post-consumer recycled plastic."
+                ]
+            }
+
+    @staticmethod
+    def generate_weekly_report(scan_history: List[Dict[str, Any]]) -> str:
+        if not GEMINI_API_KEY:
+            return AIHelper._simulate_weekly_report(scan_history)
+
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+            headers = {"Content-Type": "application/json"}
+            
+            history_str = json.dumps(scan_history, indent=2)
+            prompt = f"""
+            You are EcoFix AI, a sustainability coach. 
+            Analyze the following JSON array of recent eco-scans performed by the user:
+            {history_str}
+            
+            Write a highly personalized, encouraging "Weekly Sustainability Report" in pure Markdown format.
+            Include:
+            1. An overall summary of their environmental impact this week.
+            2. Commendations for positive patterns.
+            3. Specific, actionable steps to improve their lowest sustainability scores.
+            Keep it under 300 words. Do NOT wrap in markdown code blocks like ```markdown. Just return the raw text.
+            """
+            
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"temperature": 0.7}
+            }
+            
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            if response.status_code == 200:
+                result_json = response.json()
+                return result_json['candidates'][0]['content']['parts'][0]['text'].strip()
+            else:
+                logger.error(f"Gemini API returned error: {response.text}")
+                return AIHelper._simulate_weekly_report(scan_history)
+        except Exception as e:
+            logger.error(f"Error generating weekly report: {str(e)}")
+            return AIHelper._simulate_weekly_report(scan_history)
+
+    @staticmethod
+    def _simulate_weekly_report(scan_history: List[Dict[str, Any]]) -> str:
+        return """# Your Weekly Sustainability Report
+
+Great job tracking your footprint this week! You completed **2 eco-scans**, showing a strong commitment to learning about your impact.
+
+### What You Did Well
+You're paying close attention to your **household energy usage**, which is the first step to reducing your emissions.
+
+### Areas for Improvement
+Your single-use plastic score was quite low (30/100). Next week, try swapping out plastic water bottles for a reusable flask.
+
+*Keep scanning to earn more Green Badges!*"""

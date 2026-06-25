@@ -1,9 +1,26 @@
+/**
+ * EcoFix AI - Map Screen
+ * ======================
+ * Displays an interactive map showing all active and completed civic projects.
+ * 
+ * Flow:
+ * 1. Fetches projects from the backend `/api/projects`.
+ * 2. Renders map markers based on the project's latitude/longitude.
+ * 3. Tapping a marker opens a callout snippet.
+ * 4. Tapping the callout navigates to the ProjectDetailScreen.
+ * 
+ * Connections:
+ * - Calls GET `/api/projects` on the backend.
+ * - Navigates to `ProjectDetail` route in TabNavigator.
+ * - Uses `react-native-maps` for native map rendering.
+ */
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, ActivityIndicator } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { useFocusEffect } from '@react-navigation/native';
 
-const API_URL = 'http://192.168.1.6:8000/api';
+const API_URL = 'http://192.168.1.9:8000/api';
 
 export default function MapScreen({ navigation }: any) {
   const [projects, setProjects] = useState<any[]>([]);

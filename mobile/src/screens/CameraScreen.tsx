@@ -1,9 +1,26 @@
+/**
+ * EcoFix AI - Camera Screen
+ * =========================
+ * This screen provides the primary "Report Issue" functionality.
+ * It uses Expo Camera to capture photos of civic hazards (like illegal dumping).
+ * 
+ * Flow:
+ * 1. User takes a photo of a hazard.
+ * 2. Photo is base64 encoded and sent to the backend `/api/intake` route.
+ * 3. The backend returns an AI-analyzed ReportUploadResponse.
+ * 4. The UI displays the hazard level, volume, safety flags, and any generated message.
+ * 
+ * Connections:
+ * - Calls POST `/api/intake` on the backend.
+ * - Navigates internally to show the analysis results without leaving the screen.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Image, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 
-const API_URL = 'http://192.168.1.6:8000/api';
+const API_URL = 'http://192.168.1.9:8000/api';
 
 export default function CameraScreen({ navigation }: any) {
   const [permission, requestPermission] = useCameraPermissions();
@@ -13,6 +30,7 @@ export default function CameraScreen({ navigation }: any) {
   const [coords, setCoords] = useState<any>(null);
   const [address, setAddress] = useState<string>('');
   const [analyzing, setAnalyzing] = useState(false);
+  const [isCameraReady, setIsCameraReady] = useState(false);
   const cameraRef = useRef<any>(null);
 
   useEffect(() => {
@@ -42,7 +60,7 @@ export default function CameraScreen({ navigation }: any) {
   }, [permission, requestPermission]);
 
   const takePicture = async () => {
-    if (cameraRef.current) {
+    if (cameraRef.current && isCameraReady) {
       try {
         const opt = { quality: 0.8, skipProcessing: false, base64: true };
         const data = await cameraRef.current.takePictureAsync(opt);
@@ -76,14 +94,12 @@ export default function CameraScreen({ navigation }: any) {
       // The user can choose mock tags to trigger the three distinct backend behaviors.
       
       const payload = {
-        image_url: photo.uri.includes('camera') 
-          ? "https://images.unsplash.com/photo-1611284446314-60a58ac0deb9"  // default trash photo
-          : photo.uri,
+        image_url: photo.uri,
         image_base64: photo.base64,
         latitude: coords.latitude,
         longitude: coords.longitude,
         address: address,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const response = await fetch(`${API_URL}/intake`, {
@@ -94,36 +110,43 @@ export default function CameraScreen({ navigation }: any) {
 
       const result = await response.json();
 
-      if (result.municipal_escalation) {
+      if (result.status === 'invalid') {
         Alert.alert(
-          "🚨 MUNICIPAL BYPASS",
-          "This issue contains dangerous components (hazardous waste / high voltage). It has been bypassed and routed directly to municipal emergency dispatch.",
+          "No Hazard Detected",
+          "AI could not identify a valid environmental issue or waste in this photo. Please retake the photo.",
           [{ text: "OK", onPress: () => resetCamera() }]
         );
-      } else if (result.duplicate_found) {
-        Alert.alert(
-          "Duplicate Issue Spotted",
-          "Another neighbor already uploaded this issue. We have merged your report with their active project thread.",
-          [
-            { 
-              text: "View Thread", 
-              onPress: () => navigation.navigate('ProjectDetail', { projectId: result.duplicate_project_id }) 
-            },
-            { text: "Dismiss", onPress: () => resetCamera() }
-          ]
-        );
-      } else {
-        Alert.alert(
-          "Civic Project Launched! 🎉",
-          "AI visual assessment approved this site. Step-by-step roadmap and micro-task billboard are now active.",
-          [
-            { 
-              text: "Open Project", 
-              onPress: () => navigation.navigate('ProjectDetail', { projectId: result.duplicate_project_id }) 
-            }
-          ]
-        );
-      }
+      } else if (result.municipal_escalation) {
+          Alert.alert(
+            "🚨 MUNICIPAL BYPASS",
+            "This issue contains dangerous components (hazardous waste / high voltage). It has been bypassed and routed directly to municipal emergency dispatch.",
+            [{ text: "OK", onPress: () => resetCamera() }]
+          );
+        } else if (result.duplicate_found) {
+          Alert.alert(
+            "Duplicate Issue Spotted",
+            "Another neighbor already uploaded this issue. We have merged your report with their active project thread.",
+            [
+              { 
+                text: "View Thread", 
+                onPress: () => navigation.navigate('ProjectDetail', { projectId: result.duplicate_project_id }) 
+              },
+              { text: "Dismiss", onPress: () => resetCamera() }
+            ]
+          );
+        } else {
+          Alert.alert(
+            "Civic Project Launched! 🎉",
+            "AI visual assessment approved this site. Step-by-step roadmap and micro-task billboard are now active.",
+            [
+              { 
+                text: "Open Project", 
+                onPress: () => navigation.navigate('ProjectDetail', { projectId: result.duplicate_project_id || result.report_id }) // Fallback if no project ID returned
+              },
+              { text: "Report Another", onPress: () => resetCamera() }
+            ]
+          );
+        }
     } catch (err) {
       console.error(err);
       Alert.alert("Network Error", "Could not connect to the EcoFix AI Intake server.");
@@ -157,11 +180,19 @@ export default function CameraScreen({ navigation }: any) {
     <View style={styles.container}>
       {!photo ? (
         <View style={styles.cameraContainer}>
-          <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
+          <CameraView 
+            style={styles.camera} 
+            facing={facing} 
+            ref={cameraRef} 
+            onCameraReady={() => setIsCameraReady(true)}
+          />
           <View style={styles.overlay}>
             <View style={styles.hudRing}>
-              <Text style={styles.hudText}>ALIGN ENVIRONMENTAL DEGRADATION IN CENTER</Text>
+              <Text style={styles.hudText}>
+                ALIGN ENVIRONMENTAL DEGRADATION IN CENTER
+              </Text>
             </View>
+
             <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
               <View style={styles.captureInner} />
             </TouchableOpacity>
@@ -251,6 +282,29 @@ const styles = StyleSheet.create({
     color: '#10b981',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  modeToggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    backgroundColor: '#000000a0',
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginBottom: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#374151',
+  },
+  modeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  modeButtonActive: {
+    backgroundColor: '#10b981',
+  },
+  modeText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 12,
   },
   captureButton: {
     alignSelf: 'center',
@@ -346,20 +400,19 @@ const styles = StyleSheet.create({
     borderColor: '#374151',
   },
   retakeText: {
-    color: '#ffffff',
+    color: '#10b981',
     fontWeight: 'bold',
-    fontSize: 14,
   },
   uploadButton: {
-    flex: 2,
-    paddingVertical: 16,
     backgroundColor: '#10b981',
-    borderRadius: 12,
+    flex: 2,
+    padding: 16,
+    borderRadius: 8,
     alignItems: 'center',
   },
   uploadText: {
     color: '#ffffff',
     fontWeight: 'bold',
-    fontSize: 14,
-  },
+    fontSize: 16,
+  }
 });

@@ -1,3 +1,14 @@
+/**
+ * EcoFix AI - React Native Application Entry Point
+ * ================================================
+ * This is the root file of the mobile application. It sets up the NavigationContainer
+ * and wraps the entire application within the core UI layouts.
+ * 
+ * Usage:
+ *   Expo loads this file on startup. It points directly to `TabNavigator` to 
+ *   handle the main screen routing.
+ */
+
 import React from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -5,12 +16,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { MapPin, Camera, ClipboardList, User, Leaf, Settings } from 'lucide-react-native';
+import { MapPin, Camera, ClipboardList, User, Leaf, Settings, Activity } from 'lucide-react-native';
 
 // Screens imports (to be created)
 import DashboardScreen from './src/screens/DashboardScreen';
 import MapScreen from './src/screens/MapScreen';
 import CameraScreen from './src/screens/CameraScreen';
+import EcoScannerScreen from './src/screens/EcoScannerScreen';
 import ProjectDetailScreen from './src/screens/ProjectDetailScreen';
 import TipsScreen from './src/screens/TipsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -82,6 +94,14 @@ function TabNavigator() {
         options={{
           title: 'Report Issue',
           tabBarIcon: ({ color, size }) => <Camera color={color} size={size} />,
+        }}
+      />
+      <Tab.Screen 
+        name="Footprint" 
+        component={EcoScannerScreen} 
+        options={{
+          title: 'Footprint',
+          tabBarIcon: ({ color, size }) => <Activity color={color} size={size} />,
         }}
       />
     </Tab.Navigator>
